@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f0f0e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FlashPing" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>FlashPing</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="icon" href="/icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="flash-overlay"></div>
+  <div id="incoming-banner">
+    <span class="ib-icon">⚡</span>
+    <span class="ib-text">친구가 플래시를 보냈어요!</span>
+    <button class="ib-dismiss" onclick="dismissBanner()">확인</button>
+  </div>
+
+  <div id="app">
+    <!-- SETUP SCREEN -->
+    <div id="screen-setup" class="screen active">
+      <div class="setup-header">
+        <div class="flash-icon">⚡</div>
+        <h1>FlashPing</h1>
+        <p>연락 안 받는 친구 폰을<br/>번쩍이게 만들어보세요</p>
+      </div>
+      <div class="setup-body">
+        <div class="field">
+          <label>내 이름 (상대에게 표시됨)</label>
+          <input type="text" id="my-name" placeholder="예: 김민준" maxlength="12" />
+        </div>
+
+        <div class="divider">내 페어링 코드</div>
+
+        <div class="field">
+          <label>내 코드 — 친구에게 공유하세요</label>
+          <div class="code-row">
+            <input type="text" id="my-code" readonly placeholder="생성 중..." />
+            <button class="gen-btn" onclick="copyMyCode()" title="복사">📋</button>
+          </div>
+          <div class="code-hint">이 코드를 친구에게 카카오톡으로 보내세요</div>
+        </div>
+
+        <div class="divider">친구 코드 입력</div>
+
+        <div class="field">
+          <label>친구 코드</label>
+          <input type="text" id="friend-code" placeholder="친구의 코드를 입력하세요"
+            maxlength="8" style="letter-spacing:0.15em; font-size:18px; text-transform:uppercase" />
+        </div>
+
+        <button class="connect-btn" onclick="connectFriend()">
+          연결하기 →
+        </button>
+
+        <div id="setup-msg" class="setup-msg"></div>
+      </div>
+    </div>
+
+    <!-- WAITING SCREEN -->
+    <div id="screen-waiting" class="screen">
+      <div class="setup-header">
+        <div class="flash-icon" style="background:rgba(99,153,34,0.2)">⏳</div>
+        <h1>친구 수락 대기 중</h1>
+        <p>친구가 앱을 열고 내 코드를 입력하면<br/>자동으로 연결됩니다</p>
+      </div>
+      <div class="setup-body">
+        <div class="field">
+          <label>내 페어링 코드 (친구에게 공유)</label>
+          <div class="code-row">
+            <input type="text" id="waiting-code" readonly />
+            <button class="gen-btn" onclick="copyMyCode()" title="복사">📋</button>
+          </div>
+        </div>
+        <div class="waiting-spinner">
+          <div class="spinner"></div>
+          <span>친구 연결 기다리는 중...</span>
+        </div>
+        <button class="connect-btn" style="background:var(--card);color:var(--muted);border:0.5px solid var(--border)" onclick="goBack()">
+          ← 돌아가기
+        </button>
+      </div>
+    </div>
+
+    <!-- MAIN SCREEN -->
+    <div id="screen-main" class="screen">
+      <div class="top-bar">
+        <span class="app-name">⚡ FlashPing</span>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="connection-dot">
+            <div class="dot" id="conn-dot"></div>
+            <span id="conn-label">연결됨</span>
+          </div>
+          <button class="disconnect-btn" onclick="disconnectFriend()" title="연결 해제">⋯</button>
+        </div>
+      </div>
+
+      <!-- Friend status card -->
+      <div class="friend-card">
+        <div class="friend-top">
+          <div class="avatar" id="friend-avatar">?</div>
+          <div class="friend-info">
+            <div class="name" id="friend-name-display">친구</div>
+            <div class="pair-code" id="friend-code-display"></div>
+          </div>
+          <div class="last-seen" id="last-seen-label"></div>
+        </div>
+        <div class="status-block">
+          <div class="status-indicator available" id="friend-status-dot"></div>
+          <div style="flex:1">
+            <div class="status-label">상태 메시지</div>
+            <div class="status-text" id="friend-status-text">상태를 불러오는 중...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BIG RED BUTTON -->
+      <div class="button-area">
+        <div class="big-btn-wrap" id="btn-wrap">
+          <div class="ring1"></div>
+          <div class="ring2"></div>
+          <button class="big-red-btn" id="flash-btn" onclick="sendFlash()">
+            <span class="btn-icon">⚡</span>
+            <span class="btn-label">FLASH</span>
+          </button>
+        </div>
+        <div class="btn-hint" id="btn-hint">버튼을 눌러 친구 폰을 깜박이게 하세요</div>
+        <div class="cooldown-bar-wrap" id="cooldown-wrap" style="display:none">
+          <div class="cooldown-bar" id="cooldown-bar"></div>
+        </div>
+      </div>
+
+      <!-- My status -->
+      <div class="my-status-area">
+        <div class="my-status-top">
+          <span class="my-status-label">내 상태 메시지</span>
+          <button class="save-status-btn" id="save-status-btn" onclick="saveStatus()" style="display:none">저장</button>
+        </div>
+        <div class="my-status-input-row">
+          <input type="text" id="my-status-input"
+            placeholder="지금 뭐 하는지 친구에게 알려주세요..."
+            maxlength="60"
+            oninput="onStatusInput()"
+            onkeydown="if(event.key==='Enter') saveStatus()"
+          />
+        </div>
+        <div class="status-quick-btns">
+          <button onclick="setQuickStatus('📖 공부 중')">📖 공부 중</button>
+          <button onclick="setQuickStatus('😴 자는 중')">😴 자는 중</button>
+          <button onclick="setQuickStatus('✅ 연락 가능')">✅ 가능</button>
+          <button onclick="setQuickStatus('🚫 방해 금지')">🚫 방해 금지</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/config.js"></script>
+  <script src="/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
